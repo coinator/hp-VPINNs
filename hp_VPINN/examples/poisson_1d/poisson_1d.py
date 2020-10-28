@@ -15,12 +15,10 @@ tf.set_random_seed(1234)
 
 class VPINN:
     def __init__(self, X_u_train, u_train, X_quad, W_quad, F_exact_total, grid,
-                 X_test, u_test, layers, X_f_train, f_train):
+                 X_test, u_test, layers):
 
         self.x = X_u_train
         self.u = u_train
-        self.xf = X_f_train
-        self.f = f_train
         self.xquad = X_quad
         self.wquad = W_quad
         self.xtest = X_test
@@ -31,8 +29,6 @@ class VPINN:
 
         self.x_tf = tf.placeholder(tf.float64, shape=[None, self.x.shape[1]])
         self.u_tf = tf.placeholder(tf.float64, shape=[None, self.u.shape[1]])
-        self.xf_tf = tf.placeholder(tf.float64, shape=[None, self.xf.shape[1]])
-        self.f_tf = tf.placeholder(tf.float64, shape=[None, self.f.shape[1]])
         self.x_test = tf.placeholder(tf.float64,
                                      shape=[None, self.xtest.shape[1]])
         self.x_quad = tf.placeholder(tf.float64,
@@ -221,8 +217,6 @@ class VPINN:
             self.u_tf: self.u,
             self.x_quad: self.xquad,
             self.x_test: self.xtest,
-            self.xf_tf: self.xf,
-            self.f_tf: self.f
         }
         start_time = time.time()
         for it in range(nIter):
@@ -255,7 +249,6 @@ if __name__ == "__main__":
     net_layers = [1] + [20] * 4 + [1]
     n_test_function_per_element = 60
     n_quadrature_points = 80
-    N_F = 500
     lossb_weight = 1
 
     def test_function(n, x):
@@ -316,10 +309,6 @@ if __name__ == "__main__":
     u_train = u_exact(X_u_train)
     X_bound = np.asarray([-1.0, 1.0])[:, None]
 
-    Nf = N_F
-    X_f_train = (2 * lhs(1, Nf) - 1)
-    f_train = f(X_f_train)
-
     [x_quad, w_quad] = gauss_lobatto_jacobi_weights(n_quadrature_points, 0, 0)
 
     X_quad_train = x_quad[:, None]
@@ -343,7 +332,7 @@ if __name__ == "__main__":
         u_test_total.append(u_test_element)
 
     model = VPINN(X_u_train, u_train, X_quad_train, W_quad_train, F_exact_total,
-                  grid, X_test, u_test, net_layers, X_f_train, f_train)
+                  grid, X_test, u_test, net_layers)
     total_record = []
     model.train(optimization_iterations, optimization_threshold)
     u_pred = model.predict(X_test)
@@ -355,10 +344,6 @@ if __name__ == "__main__":
     x_train_plot = X_u_train
     y_train_plot = np.empty(len(x_train_plot))
     y_train_plot.fill(1)
-
-    x_f_plot = X_f_train
-    y_f_plot = np.empty(len(x_f_plot))
-    y_f_plot.fill(1)
 
     fig = plt.figure(0)
     gridspec.GridSpec(3, 1)
