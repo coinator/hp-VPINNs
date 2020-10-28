@@ -20,7 +20,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from pyDOE import lhs
-from gauss_jacobi_quadrature_rule import Jacobi, DJacobi, GaussLobattoJacobiWeights, GaussJacobiWeights
+from hp_VPINN.utilities.gauss_jacobi_quadrature_rule import Jacobi, DJacobi, GaussLobattoJacobiWeights, GaussJacobiWeights
 import time
 
 tf = tf.compat.v1
