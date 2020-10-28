@@ -332,8 +332,8 @@ if __name__ == "__main__":
     X_quad_train = x_quad[:, None]
     W_quad_train = w_quad[:, None]
 
-    delta_test = 0.001
-    xtest = np.arange(-1, 1 + delta_test, delta_test)
+    test_points = 2000
+    xtest = np.linspace(-1, 1, delta_test)
     data_temp = np.asarray([[xtest[i], u_ext(xtest[i])]
                             for i in range(len(xtest))])
     X_test = data_temp.flatten()[0::2]
