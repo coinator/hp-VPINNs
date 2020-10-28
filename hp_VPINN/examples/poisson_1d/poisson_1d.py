@@ -20,8 +20,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from pyDOE import lhs
-from GaussJacobiQuadRule_V3 import Jacobi, DJacobi, GaussLobattoJacobiWeights, GaussJacobiWeights
+from gauss_jacobi_quadrature_rule import Jacobi, DJacobi, GaussLobattoJacobiWeights, GaussJacobiWeights
 import time
+
+tf = tf.compat.v1
+tf.disable_v2_behavior()
 
 np.random.seed(1234)
 tf.set_random_seed(1234)
@@ -229,10 +232,10 @@ if __name__ == "__main__":
     
     #++++++++++++++++++++++++++++
     LR = 0.001
-    Opt_Niter = 1000 + 1
+    Opt_Niter = 3000 + 1
     Opt_tresh = 2e-32
-    var_form  = 1
-    N_Element = 1
+    var_form  = 2
+    N_Element = 2
     Net_layer = [1] + [20] * 4 + [1] 
     N_testfcn = 60
     N_Quad = 80
@@ -428,6 +431,8 @@ if __name__ == "__main__":
     fig.set_size_inches(w=11,h=5.5)
     plt.savefig('Results/error.pdf')
     #++++++++++++++++++++++++++++
+
+    plt.show()
 
 
 
