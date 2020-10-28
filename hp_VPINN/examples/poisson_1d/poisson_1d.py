@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from pyDOE import lhs
-from hp_VPINN.utilities.gauss_jacobi_quadrature_rule import Jacobi, DJacobi, GaussLobattoJacobiWeights, GaussJacobiWeights
+from hp_VPINN.utilities.gauss_jacobi_quadrature_rule import jacobi_polynomial, gauss_lobatto_jacobi_weights
 import time
 
 tf = tf.compat.v1
@@ -80,6 +80,7 @@ class VPINN:
                                       test_quad_element[i])
                         for i in range(Ntest_element)
                     ]), (-1, 1))
+
             if var_form == 2:
                 U_NN_element = tf.reshape(
                     tf.stack([
@@ -87,6 +88,7 @@ class VPINN:
                                       d1test_quad_element[i])
                         for i in range(Ntest_element)
                     ]), (-1, 1))
+
             if var_form == 3:
                 U_NN_element = tf.reshape(tf.stack([-1/jacobian*tf.reduce_sum(self.wquad*u_NN_quad_element*d2test_quad_element[i])
                                                    +1/jacobian*tf.reduce_sum(u_NN_bound_element*np.array([-d1test_bound_element[i][0], d1test_bound_element[i][-1]]))  \
@@ -162,7 +164,7 @@ class VPINN:
     def Test_fcn(self, N_test, x):
         test_total = []
         for n in range(1, N_test + 1):
-            test = Jacobi(n + 1, 0, 0, x) - Jacobi(n - 1, 0, 0, x)
+            test = jacobi_polynomial(n + 1, 0, 0, x) - jacobi_polynomial(n - 1, 0, 0, x)
             test_total.append(test)
         return np.asarray(test_total)
 
@@ -171,23 +173,23 @@ class VPINN:
         d2test_total = []
         for n in range(1, N_test + 1):
             if n == 1:
-                d1test = ((n + 2) / 2) * Jacobi(n, 1, 1, x)
-                d2test = ((n + 2) * (n + 3) / (2 * 2)) * Jacobi(n - 1, 2, 2, x)
+                d1test = ((n + 2) / 2) * jacobi_polynomial(n, 1, 1, x)
+                d2test = ((n + 2) * (n + 3) / (2 * 2)) * jacobi_polynomial(n - 1, 2, 2, x)
                 d1test_total.append(d1test)
                 d2test_total.append(d2test)
             elif n == 2:
-                d1test = ((n + 2) / 2) * Jacobi(n, 1, 1, x) - (
-                    (n) / 2) * Jacobi(n - 2, 1, 1, x)
-                d2test = ((n + 2) * (n + 3) / (2 * 2)) * Jacobi(n - 1, 2, 2, x)
+                d1test = ((n + 2) / 2) * jacobi_polynomial(n, 1, 1, x) - (
+                    (n) / 2) * jacobi_polynomial(n - 2, 1, 1, x)
+                d2test = ((n + 2) * (n + 3) / (2 * 2)) * jacobi_polynomial(n - 1, 2, 2, x)
                 d1test_total.append(d1test)
                 d2test_total.append(d2test)
             else:
-                d1test = ((n + 2) / 2) * Jacobi(n, 1, 1, x) - (
-                    (n) / 2) * Jacobi(n - 2, 1, 1, x)
+                d1test = ((n + 2) / 2) * jacobi_polynomial(n, 1, 1, x) - (
+                    (n) / 2) * jacobi_polynomial(n - 2, 1, 1, x)
                 d2test = ((n + 2) * (n + 3) /
-                          (2 * 2)) * Jacobi(n - 1, 2, 2, x) - (
+                          (2 * 2)) * jacobi_polynomial(n - 1, 2, 2, x) - (
                               (n) * (n + 1) /
-                              (2 * 2)) * Jacobi(n - 3, 2, 2, x)
+                              (2 * 2)) * jacobi_polynomial(n - 3, 2, 2, x)
                 d1test_total.append(d1test)
                 d2test_total.append(d2test)
         return np.asarray(d1test_total), np.asarray(d2test_total)
@@ -257,7 +259,7 @@ if __name__ == "__main__":
     lossb_weight = 1
 
     def Test_fcn(n, x):
-        test = Jacobi(n + 1, 0, 0, x) - Jacobi(n - 1, 0, 0, x)
+        test = jacobi_polynomial(n + 1, 0, 0, x) - jacobi_polynomial(n - 1, 0, 0, x)
         return test
 
     omega = 8 * np.pi
@@ -274,7 +276,7 @@ if __name__ == "__main__":
         return -amp * gtemp
 
     NQ_u = N_Quad
-    [x_quad, w_quad] = GaussLobattoJacobiWeights(NQ_u, 0, 0)
+    [x_quad, w_quad] = gauss_lobatto_jacobi_weights(NQ_u, 0, 0)
     testfcn = np.asarray(
         [Test_fcn(n, x_quad) for n in range(1, N_testfcn + 1)])
 
@@ -325,7 +327,7 @@ if __name__ == "__main__":
     X_f_train = (2 * lhs(1, Nf) - 1)
     f_train = f_ext(X_f_train)
 
-    [x_quad, w_quad] = GaussLobattoJacobiWeights(N_Quad, 0, 0)
+    [x_quad, w_quad] = gauss_lobatto_jacobi_weights(N_Quad, 0, 0)
 
     X_quad_train = x_quad[:, None]
     W_quad_train = w_quad[:, None]
