@@ -64,10 +64,6 @@ class VPINN:
             d1u_NN_quad_element, d2u_NN_quad_element = self.net_du(
                 x_quad_element)
 
-            u_NN_bound_element = self.net_u(x_b_element)
-            d1test_bound_element, d2test_bounda_element = self.dTest_fcn(
-                Ntest_element, np.array([[-1], [1]]))
-
             if variational_form == 1:
                 U_NN_element = tf.reshape(
                     tf.stack([
@@ -84,11 +80,6 @@ class VPINN:
                                       d1test_quad_element[i])
                         for i in range(Ntest_element)
                     ]), (-1, 1))
-
-            if variational_form == 3:
-                U_NN_element = tf.reshape(tf.stack([-1/jacobian*tf.reduce_sum(self.wquad*u_NN_quad_element*d2test_quad_element[i])
-                                                   +1/jacobian*tf.reduce_sum(u_NN_bound_element*np.array([-d1test_bound_element[i][0], d1test_bound_element[i][-1]]))  \
-                                                   for i in range(Ntest_element)]),(-1,1))
 
             Res_NN_element = U_NN_element - F_exact_element
             loss_element = tf.reduce_mean(tf.square(Res_NN_element))
@@ -242,7 +233,7 @@ class VPINN:
 if __name__ == "__main__":
 
     learning_rate = 0.001
-    optimization_iterations = 7000 + 1
+    optimization_iterations = 2000 + 1
     optimization_threshold = 2e-32
     variational_form = 2
     n_elements = 3
