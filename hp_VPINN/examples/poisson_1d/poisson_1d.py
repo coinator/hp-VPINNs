@@ -2,7 +2,6 @@ import tensorflow as tf
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
-from pyDOE import lhs
 from hp_VPINN.utilities.gauss_jacobi_quadrature_rule import jacobi_polynomial, gauss_lobatto_jacobi_weights
 import time
 
@@ -14,51 +13,41 @@ tf.set_random_seed(1234)
 
 
 class VPINN:
-    def __init__(self, X_u_train, u_train, X_quad, W_quad, F_exact_total, grid,
-                 X_test, u_test, layers):
+    def __init__(self, x_boundary, u_boundary, x_quadrature, w_quadrature,
+                 F_exact_total, grid, layers):
 
-        self.x = X_u_train
-        self.u = u_train
-        self.xquad = X_quad
-        self.wquad = W_quad
-        self.xtest = X_test
-        self.utest = u_test
+        self.x = x_boundary
+        self.u = u_boundary
+        self.xquad = x_quadrature
+        self.wquad = w_quadrature
         self.F_exact_total = F_exact_total
-        self.Nelement = np.shape(self.F_exact_total)[0]
-        self.N_test = np.shape(self.F_exact_total[0])[0]
+        self.n_element = np.shape(self.F_exact_total)[0]
 
         self.x_tf = tf.placeholder(tf.float64, shape=[None, self.x.shape[1]])
         self.u_tf = tf.placeholder(tf.float64, shape=[None, self.u.shape[1]])
-        self.x_test = tf.placeholder(tf.float64,
-                                     shape=[None, self.xtest.shape[1]])
         self.x_quad = tf.placeholder(tf.float64,
                                      shape=[None, self.xquad.shape[1]])
 
         self.weights, self.biases, self.a = self.initialize_NN(layers)
 
-        self.u_NN_quad = self.net_u(self.x_quad)
-        self.d1u_NN_quad, self.d2u_NN_quad = self.net_du(self.x_quad)
-        self.test_quad = self.Test_fcn(self.N_test, self.xquad)
-        self.d1test_quad, self.d2test_quad = self.dTest_fcn(
-            self.N_test, self.xquad)
+        self.u_NN_boundary = self.net_u(self.x_tf)
 
-        self.u_NN_pred = self.net_u(self.x_tf)
-        self.u_NN_test = self.net_u(self.x_test)
-        self.f_pred = self.net_f(self.x_test)
+        self.x_prediction = tf.placeholder(tf.float64,
+                                           shape=[None, self.x.shape[1]])
+        self.u_NN_prediction = self.net_u(self.x_prediction)
 
         self.varloss_total = 0
-        for e in range(self.Nelement):
+        for e in range(self.n_element):
             F_exact_element = self.F_exact_total[e]
             Ntest_element = np.shape(F_exact_element)[0]
 
             x_quad_element = tf.constant(grid[e] +
                                          (grid[e + 1] - grid[e]) / 2 *
                                          (self.xquad + 1))
-            x_b_element = tf.constant(np.array([[grid[e]], [grid[e + 1]]]))
             jacobian = (grid[e + 1] - grid[e]) / 2
 
-            test_quad_element = self.Test_fcn(Ntest_element, self.xquad)
-            d1test_quad_element, d2test_quad_element = self.dTest_fcn(
+            test_quad_element = self.test_function(Ntest_element, self.xquad)
+            d1test_quad_element, d2test_quad_element = self.test_function_derivative(
                 Ntest_element, self.xquad)
             u_NN_quad_element = self.net_u(x_quad_element)
             d1u_NN_quad_element, d2u_NN_quad_element = self.net_du(
@@ -85,7 +74,7 @@ class VPINN:
             loss_element = tf.reduce_mean(tf.square(Res_NN_element))
             self.varloss_total = self.varloss_total + loss_element
 
-        self.lossb = tf.reduce_mean(tf.square(self.u_tf - self.u_NN_pred))
+        self.lossb = tf.reduce_mean(tf.square(self.u_tf - self.u_NN_boundary))
         self.lossv = self.varloss_total
         self.loss = boundary_loss_weight * self.lossb + self.lossv
 
@@ -148,26 +137,29 @@ class VPINN:
         f = -u_xx
         return f
 
-    def Test_fcn(self, N_test, x):
+    def test_function(self, n_test_functions, x):
         test_total = []
-        for n in range(1, N_test + 1):
-            test = jacobi_polynomial(n + 1, 0, 0, x) - jacobi_polynomial(n - 1, 0, 0, x)
+        for n in range(1, n_test_functions + 1):
+            test = jacobi_polynomial(n + 1, 0, 0, x) - jacobi_polynomial(
+                n - 1, 0, 0, x)
             test_total.append(test)
         return np.asarray(test_total)
 
-    def dTest_fcn(self, N_test, x):
+    def test_function_derivative(self, n_test_functions, x):
         d1test_total = []
         d2test_total = []
-        for n in range(1, N_test + 1):
+        for n in range(1, n_test_functions + 1):
             if n == 1:
                 d1test = ((n + 2) / 2) * jacobi_polynomial(n, 1, 1, x)
-                d2test = ((n + 2) * (n + 3) / (2 * 2)) * jacobi_polynomial(n - 1, 2, 2, x)
+                d2test = ((n + 2) * (n + 3) /
+                          (2 * 2)) * jacobi_polynomial(n - 1, 2, 2, x)
                 d1test_total.append(d1test)
                 d2test_total.append(d2test)
             elif n == 2:
                 d1test = ((n + 2) / 2) * jacobi_polynomial(n, 1, 1, x) - (
                     (n) / 2) * jacobi_polynomial(n - 2, 1, 1, x)
-                d2test = ((n + 2) * (n + 3) / (2 * 2)) * jacobi_polynomial(n - 1, 2, 2, x)
+                d2test = ((n + 2) * (n + 3) /
+                          (2 * 2)) * jacobi_polynomial(n - 1, 2, 2, x)
                 d1test_total.append(d1test)
                 d2test_total.append(d2test)
             else:
@@ -181,24 +173,8 @@ class VPINN:
                 d2test_total.append(d2test)
         return np.asarray(d1test_total), np.asarray(d2test_total)
 
-    def predict_subdomain(self, grid):
-        error_u_total = []
-        u_pred_total = []
-        for e in range(self.Nelement):
-            utest_element = self.utest_total[e]
-            x_test_element = grid[e] + (grid[e + 1] -
-                                        grid[e]) / 2 * (self.xtest + 1)
-            u_pred_element = self.sess.run(self.u_NN_test,
-                                           {self.x_test: x_test_element})
-            error_u_element = np.linalg.norm(utest_element - u_pred_element,
-                                             2) / np.linalg.norm(
-                                                 utest_element, 2)
-            error_u_total.append(error_u_element)
-            u_pred_total.append(u_pred_element)
-        return u_pred_total, error_u_total
-
     def predict(self, x):
-        u_pred = self.sess.run(self.u_NN_test, {self.x_test: x})
+        u_pred = self.sess.run(self.u_NN_prediction, {self.x_prediction: x})
         return u_pred
 
     def train(self, nIter, tresh):
@@ -207,7 +183,6 @@ class VPINN:
             self.x_tf: self.x,
             self.u_tf: self.u,
             self.x_quad: self.xquad,
-            self.x_test: self.xtest,
         }
         start_time = time.time()
         for it in range(nIter):
@@ -242,10 +217,6 @@ if __name__ == "__main__":
     n_quadrature_points = 80
     boundary_loss_weight = 1
 
-    def test_function(n, x):
-        test = jacobi_polynomial(n + 1, 0, 0, x) - jacobi_polynomial(n - 1, 0, 0, x)
-        return test
-
     omega = 8 * np.pi
     amp = 1
     r1 = 80
@@ -259,9 +230,12 @@ if __name__ == "__main__":
             r1 * x)) / ((np.cosh(r1 * x))**2)
         return -amp * gtemp
 
+    def test_function(n, x):
+        test = jacobi_polynomial(n + 1, 0, 0, x) - jacobi_polynomial(
+            n - 1, 0, 0, x)
+        return test
+
     [x_quad, w_quad] = gauss_lobatto_jacobi_weights(n_quadrature_points, 0, 0)
-    testfcn = np.asarray(
-        [test_function(n, x_quad) for n in range(1, test_functions_per_element + 1)])
 
     [x_l, x_r] = [-1, 1]
     delta_x = (x_r - x_l) / n_elements
@@ -271,15 +245,10 @@ if __name__ == "__main__":
     for e in range(n_elements):
         x_quad_element = grid[e] + (grid[e + 1] - grid[e]) / 2 * (x_quad + 1)
         jacobian = (grid[e + 1] - grid[e]) / 2
-        testfcn_element = np.asarray(
-            [test_function(n, x_quad) for n in range(1, test_functions_per_element + 1)])
-
-        u_quad_element = u_exact(x_quad_element)
-        U_exact_element = jacobian * np.asarray([
-            sum(w_quad * u_quad_element * testfcn_element[i])
-            for i in range(test_functions_per_element)
+        testfcn_element = np.asarray([
+            test_function(n, x_quad)
+            for n in range(1, test_functions_per_element + 1)
         ])
-        U_exact_element = U_exact_element[:, None]
 
         f_quad_element = f(x_quad_element)
         F_exact_element = jacobian * np.asarray([
@@ -291,9 +260,8 @@ if __name__ == "__main__":
 
     F_exact_total = np.asarray(F_exact_total)
 
-    X_u_train = np.asarray([-1.0, 1.0])[:, None]
-    u_train = u_exact(X_u_train)
-    X_bound = np.asarray([-1.0, 1.0])[:, None]
+    x_boundary = np.asarray([-1.0, 1.0])[:, None]
+    u_boundary = u_exact(x_boundary)
 
     [x_quad, w_quad] = gauss_lobatto_jacobi_weights(n_quadrature_points, 0, 0)
 
@@ -308,17 +276,9 @@ if __name__ == "__main__":
     u_test = data_temp.flatten()[1::2]
     X_test = X_test[:, None]
     u_test = u_test[:, None]
-    f_test = f(X_test)
 
-    u_test_total = []
-    for e in range(n_elements):
-        x_test_element = grid[e] + (grid[e + 1] - grid[e]) / 2 * (xtest + 1)
-        u_test_element = u_exact(x_test_element)
-        u_test_element = u_test_element[:, None]
-        u_test_total.append(u_test_element)
-
-    model = VPINN(X_u_train, u_train, X_quad_train, W_quad_train, F_exact_total,
-                  grid, X_test, u_test, net_layers)
+    model = VPINN(x_boundary, u_boundary, X_quad_train, W_quad_train,
+                  F_exact_total, grid, net_layers)
     total_record = []
     model.train(optimization_iterations, optimization_threshold)
     u_pred = model.predict(X_test)
@@ -327,7 +287,7 @@ if __name__ == "__main__":
     y_quad_plot = np.empty(len(x_quad_plot))
     y_quad_plot.fill(1)
 
-    x_train_plot = X_u_train
+    x_train_plot = x_boundary
     y_train_plot = np.empty(len(x_train_plot))
     y_train_plot.fill(1)
 
