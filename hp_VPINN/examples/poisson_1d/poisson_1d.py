@@ -96,7 +96,7 @@ class VPINN:
 
         self.lossb = tf.reduce_mean(tf.square(self.u_tf - self.u_NN_pred))
         self.lossv = self.varloss_total
-        self.loss = lossb_weight * self.lossb + self.lossv
+        self.loss = boundary_loss_weight * self.lossb + self.lossv
 
         self.learning_rate = learning_rate
         self.optimizer_Adam = tf.train.AdamOptimizer(self.learning_rate)
@@ -242,14 +242,14 @@ class VPINN:
 if __name__ == "__main__":
 
     learning_rate = 0.001
-    optimization_iterations = 3000 + 1
+    optimization_iterations = 7000 + 1
     optimization_threshold = 2e-32
     variational_form = 2
     n_elements = 3
     net_layers = [1] + [20] * 4 + [1]
-    n_test_function_per_element = 60
+    test_functions_per_element = 60
     n_quadrature_points = 80
-    lossb_weight = 1
+    boundary_loss_weight = 1
 
     def test_function(n, x):
         test = jacobi_polynomial(n + 1, 0, 0, x) - jacobi_polynomial(n - 1, 0, 0, x)
@@ -270,39 +270,34 @@ if __name__ == "__main__":
 
     [x_quad, w_quad] = gauss_lobatto_jacobi_weights(n_quadrature_points, 0, 0)
     testfcn = np.asarray(
-        [test_function(n, x_quad) for n in range(1, n_test_function_per_element + 1)])
+        [test_function(n, x_quad) for n in range(1, test_functions_per_element + 1)])
 
     [x_l, x_r] = [-1, 1]
     delta_x = (x_r - x_l) / n_elements
     grid = np.asarray([x_l + i * delta_x for i in range(n_elements + 1)])
-    N_testfcn_total = np.array((len(grid) - 1) * [n_test_function_per_element])
 
-    U_exact_total = []
     F_exact_total = []
     for e in range(n_elements):
         x_quad_element = grid[e] + (grid[e + 1] - grid[e]) / 2 * (x_quad + 1)
         jacobian = (grid[e + 1] - grid[e]) / 2
-        N_testfcn_temp = N_testfcn_total[e]
         testfcn_element = np.asarray(
-            [test_function(n, x_quad) for n in range(1, N_testfcn_temp + 1)])
+            [test_function(n, x_quad) for n in range(1, test_functions_per_element + 1)])
 
         u_quad_element = u_exact(x_quad_element)
         U_exact_element = jacobian * np.asarray([
             sum(w_quad * u_quad_element * testfcn_element[i])
-            for i in range(N_testfcn_temp)
+            for i in range(test_functions_per_element)
         ])
         U_exact_element = U_exact_element[:, None]
-        U_exact_total.append(U_exact_element)
 
         f_quad_element = f(x_quad_element)
         F_exact_element = jacobian * np.asarray([
             sum(w_quad * f_quad_element * testfcn_element[i])
-            for i in range(N_testfcn_temp)
+            for i in range(test_functions_per_element)
         ])
         F_exact_element = F_exact_element[:, None]
         F_exact_total.append(F_exact_element)
 
-    U_exact_total = np.asarray(U_exact_total)
     F_exact_total = np.asarray(F_exact_total)
 
     X_u_train = np.asarray([-1.0, 1.0])[:, None]
