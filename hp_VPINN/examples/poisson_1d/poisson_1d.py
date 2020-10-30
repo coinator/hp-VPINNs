@@ -4,12 +4,14 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from hp_VPINN.utilities.gauss_jacobi_quadrature_rule import jacobi_polynomial, gauss_lobatto_jacobi_weights
 from hp_VPINN.utilities import tf, np
+from hp_VPINN.utilities.nn import NN
 import time
 
-class VPINN:
+class VPINN(NN):
     def __init__(self, x_boundary, u_boundary, x_quadrature, w_quadrature,
                  F_exact_total, grid, layers):
 
+        NN.__init__(self, layers)
         self.x = x_boundary
         self.u = u_boundary
         self.xquad = x_quadrature
@@ -22,7 +24,6 @@ class VPINN:
         self.x_quad = tf.placeholder(tf.float64,
                                      shape=[None, self.xquad.shape[1]])
 
-        self.weights, self.biases, self.a = self.initialize_NN(layers)
 
         self.u_NN_boundary = self.net_u(self.x_tf)
 
@@ -78,45 +79,6 @@ class VPINN:
         self.sess = tf.Session(config=tf.ConfigProto(device_count={'GPU': 0}))
         self.init = tf.global_variables_initializer()
         self.sess.run(self.init)
-
-    def initialize_NN(self, layers):
-        weights = []
-        biases = []
-        num_layers = len(layers)
-        for l in range(0, num_layers - 1):
-            W = self.xavier_init(size=[layers[l], layers[l + 1]])
-            b = tf.Variable(tf.zeros([1, layers[l + 1]], dtype=tf.float64),
-                            dtype=tf.float64)
-            a = tf.Variable(0.01, dtype=tf.float64)
-            weights.append(W)
-            biases.append(b)
-        return weights, biases, a
-
-    def xavier_init(self, size):
-        in_dim = size[0]
-        out_dim = size[1]
-        xavier_stddev = np.sqrt(2 / (in_dim + out_dim), dtype=np.float64)
-        return tf.Variable(tf.truncated_normal([in_dim, out_dim],
-                                               stddev=xavier_stddev,
-                                               dtype=tf.float64),
-                           dtype=tf.float64)
-
-    def neural_net(self, X, weights, biases, a):
-        num_layers = len(weights) + 1
-        H = X
-        for l in range(0, num_layers - 2):
-            W = weights[l]
-            b = biases[l]
-            H = tf.sin(tf.add(tf.matmul(H, W), b))
-        W = weights[-1]
-        b = biases[-1]
-        Y = tf.add(tf.matmul(H, W), b)
-        return Y
-
-    def net_u(self, x):
-        u = self.neural_net(tf.concat([x], 1), self.weights, self.biases,
-                            self.a)
-        return u
 
     def net_du(self, x):
         u = self.net_u(x)
