@@ -3,14 +3,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from hp_VPINN.utilities.gauss_jacobi_quadrature_rule import jacobi_polynomial, gauss_lobatto_jacobi_weights
+from hp_VPINN.utilities import tf, np
 import time
-
-tf = tf.compat.v1
-tf.disable_v2_behavior()
-
-np.random.seed(1234)
-tf.set_random_seed(1234)
-
 
 class VPINN:
     def __init__(self, x_boundary, u_boundary, x_quadrature, w_quadrature,
