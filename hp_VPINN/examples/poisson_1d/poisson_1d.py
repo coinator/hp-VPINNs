@@ -1,11 +1,12 @@
 import tensorflow as tf
 import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.gridspec as gridspec
-from hp_VPINN.utilities.gauss_jacobi_quadrature_rule import jacobi_polynomial, gauss_lobatto_jacobi_weights
-from hp_VPINN.utilities import tf, np
-from hp_VPINN.utilities.nn import NN
 import time
+
+from hp_VPINN.utilities import tf, np
+from hp_VPINN.utilities.gauss_jacobi_quadrature_rule import jacobi_polynomial, gauss_lobatto_jacobi_weights
+from hp_VPINN.utilities.nn import NN
+from hp_VPINN.utilities.plotting import plot
+
 
 class VPINN(NN):
     def __init__(self, x_boundary, u_boundary, x_quadrature, w_quadrature,
@@ -23,7 +24,6 @@ class VPINN(NN):
         self.u_tf = tf.placeholder(tf.float64, shape=[None, self.u.shape[1]])
         self.x_quad = tf.placeholder(tf.float64,
                                      shape=[None, self.xquad.shape[1]])
-
 
         self.u_NN_boundary = self.net_u(self.x_tf)
 
@@ -133,7 +133,7 @@ class VPINN(NN):
         u_pred = self.sess.run(self.u_NN_prediction, {self.x_prediction: x})
         return u_pred
 
-    def train(self, nIter, tresh):
+    def train(self, nIter, tresh, total_record):
 
         tf_dict = {
             self.x_tf: self.x,
@@ -152,19 +152,21 @@ class VPINN(NN):
 
                 if loss_value < tresh:
                     print('It: %d, Loss: %.3e' % (it, loss_value))
-                    break
+                    return total_record
 
             if it % 100 == 0:
                 elapsed = time.time() - start_time
                 str_print = 'It: %d, Lossb: %.3e, Lossv: %.3e, Time: %.2f'
                 print(str_print % (it, loss_valueb, loss_valuev, elapsed))
                 start_time = time.time()
+        return total_record
+
 
 
 if __name__ == "__main__":
 
     learning_rate = 0.001
-    optimization_iterations = 2000 + 1
+    optimization_iterations = 5000 + 1
     optimization_threshold = 2e-32
     variational_form = 2
     n_elements = 3
@@ -228,101 +230,20 @@ if __name__ == "__main__":
     xtest = np.linspace(-1, 1, test_points)
     data_temp = np.asarray([[xtest[i], u_exact(xtest[i])]
                             for i in range(len(xtest))])
-    X_test = data_temp.flatten()[0::2]
-    u_test = data_temp.flatten()[1::2]
-    X_test = X_test[:, None]
-    u_test = u_test[:, None]
+    x_prediction = data_temp.flatten()[0::2]
+    u_correct = data_temp.flatten()[1::2]
+    x_prediction = x_prediction[:, None]
+    u_correct = u_correct[:, None]
 
     model = VPINN(x_boundary, u_boundary, X_quad_train, W_quad_train,
                   F_exact_total, grid, net_layers)
-    total_record = []
-    model.train(optimization_iterations, optimization_threshold)
-    u_pred = model.predict(X_test)
+    total_record = model.train(optimization_iterations, optimization_threshold, [])
+    u_prediction = model.predict(x_prediction)
 
-    x_quad_plot = X_quad_train
-    y_quad_plot = np.empty(len(x_quad_plot))
-    y_quad_plot.fill(1)
-
-    x_train_plot = x_boundary
-    y_train_plot = np.empty(len(x_train_plot))
-    y_train_plot.fill(1)
-
-    fig = plt.figure(0)
-    gridspec.GridSpec(3, 1)
-
-    plt.subplot2grid((3, 1), (0, 0))
-    plt.tight_layout()
-    plt.locator_params(axis='x', nbins=6)
-    plt.yticks([])
-    plt.title('$Quadrature \,\, Points$')
-    plt.xlabel('$x$')
-    plt.axhline(1, linewidth=1, linestyle='-', color='red')
-    plt.axvline(-1, linewidth=1, linestyle='--', color='red')
-    plt.axvline(1, linewidth=1, linestyle='--', color='red')
-    plt.scatter(x_quad_plot, y_quad_plot, color='green')
-
-    plt.subplot2grid((3, 1), (1, 0))
-    plt.tight_layout()
-    plt.locator_params(axis='x', nbins=6)
-    plt.yticks([])
-    plt.title('$Training \,\, Points$')
-    plt.xlabel('$x$')
-    plt.axhline(1, linewidth=1, linestyle='-', color='red')
-    plt.axvline(-1, linewidth=1, linestyle='--', color='red')
-    plt.axvline(1, linewidth=1, linestyle='--', color='red')
-    plt.scatter(x_train_plot, y_train_plot, color='blue')
-
-    fig.tight_layout()
-    fig.set_size_inches(w=10, h=7)
-    plt.savefig('Results/Train-Quad-pnts.pdf')
-
-    font = 24
-
-    fig, ax = plt.subplots()
-    plt.tick_params(axis='y', which='both', labelleft='on', labelright='off')
-    plt.xlabel('$iteration$', fontsize=font)
-    plt.ylabel('$loss \,\, values$', fontsize=font)
-    plt.yscale('log')
-    plt.grid(True)
-    iteration = [total_record[i][0] for i in range(len(total_record))]
-    loss_his = [total_record[i][1] for i in range(len(total_record))]
-    plt.plot(iteration, loss_his, 'gray')
-    plt.tick_params(labelsize=20)
-    fig.set_size_inches(w=11, h=5.5)
-    plt.savefig('Results/loss.pdf')
-
-    pnt_skip = 25
-    fig, ax = plt.subplots()
-    plt.locator_params(axis='x', nbins=6)
-    plt.locator_params(axis='y', nbins=8)
-    plt.xlabel('$x$', fontsize=font)
-    plt.ylabel('$u$', fontsize=font)
-    plt.axhline(0, linewidth=0.8, linestyle='-', color='gray')
-    for xc in grid:
-        plt.axvline(x=xc, linewidth=2, ls='--')
-    plt.plot(X_test,
-             u_test,
-             linewidth=1,
-             color='r',
-             label=''.join(['$exact$']))
-    plt.plot(X_test[0::pnt_skip], u_pred[0::pnt_skip], 'k*', label='$VPINN$')
-    plt.tick_params(labelsize=20)
-    legend = plt.legend(shadow=True, loc='upper left', fontsize=18, ncol=1)
-    fig.set_size_inches(w=11, h=5.5)
-    plt.savefig('Results/prediction.pdf')
-
-    fig, ax = plt.subplots()
-    plt.locator_params(axis='x', nbins=6)
-    plt.locator_params(axis='y', nbins=8)
-    plt.xlabel('$x$', fontsize=font)
-    plt.ylabel('point-wise error', fontsize=font)
-    plt.yscale('log')
-    plt.axhline(0, linewidth=0.8, linestyle='-', color='gray')
-    for xc in grid:
-        plt.axvline(x=xc, linewidth=2, ls='--')
-    plt.plot(X_test, abs(u_test - u_pred), 'k')
-    plt.tick_params(labelsize=20)
-    fig.set_size_inches(w=11, h=5.5)
-    plt.savefig('Results/error.pdf')
-
-    plt.show()
+    plot(x_quadrature=X_quad_train,
+         x_boundary=x_boundary,
+         x_prediction=x_prediction,
+         u_prediction=u_prediction,
+         u_correct=u_correct,
+         total_record=total_record,
+         grid=grid)
