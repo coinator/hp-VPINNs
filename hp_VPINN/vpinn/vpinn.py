@@ -15,68 +15,68 @@ class VPINN(NN):
         self.x_tf = tf.placeholder(tf.float64, shape=[None, self.x.shape[1]])
         self.u_tf = tf.placeholder(tf.float64, shape=[None, self.u.shape[1]])
 
-    def element_losses(self, x_quadrature, w_quadrature, variational_form, boundary_loss_weight, F_exact_total, grid):
-        self.xquad = x_quadrature
-        self.wquad = w_quadrature
-        self.F_exact_total = F_exact_total
-        self.n_element = np.shape(self.F_exact_total)[0]
+    def element_losses(self, x_quadrature, w_quadrature, variational_form,
+                       boundary_loss_weight, f_elements, grid):
+        self.x_quadrature = x_quadrature
+        self.w_quadrature = w_quadrature
+        self.f_elements = f_elements
 
         self.x_quad = tf.placeholder(tf.float64,
-                                     shape=[None, self.xquad.shape[1]])
+                                     shape=[None, self.x_quadrature.shape[1]])
 
-        self.u_NN_boundary = self.net_u(self.x_tf)
+        self.u_nn_boundary = self.net_u(self.x_tf)
 
         self.x_prediction = tf.placeholder(tf.float64,
                                            shape=[None, self.x.shape[1]])
-        self.u_NN_prediction = self.net_u(self.x_prediction)
+        self.u_nn_prediction = self.net_u(self.x_prediction)
 
         self.varloss_total = 0
-        for e in range(self.n_element):
-            F_exact_element = self.F_exact_total[e]
-            Ntest_element = np.shape(F_exact_element)[0]
+        for e in range(np.shape(self.f_elements)[0]):
+            f_element = self.f_elements[e]
+            n_test_functions = np.shape(f_element)[0]
 
             x_quad_element = tf.constant(grid[e] +
                                          (grid[e + 1] - grid[e]) / 2 *
-                                         (self.xquad + 1))
+                                         (self.x_quadrature + 1))
             jacobian = (grid[e + 1] - grid[e]) / 2
 
-            test_quad_element = self.test_function(Ntest_element, self.xquad)
+            test_quad_element = self.test_function(n_test_functions,
+                                                   self.x_quadrature)
             d1test_quad_element, d2test_quad_element = self.test_function_derivative(
-                Ntest_element, self.xquad)
-            u_NN_quad_element = self.net_u(x_quad_element)
-            d1u_NN_quad_element, d2u_NN_quad_element = self.net_du(
+                n_test_functions, self.x_quadrature)
+            u_nn_quad_element = self.net_u(x_quad_element)
+            d1u_nn_quad_element, d2u_nn_quad_element = self.net_du(
                 x_quad_element)
 
             if variational_form == 1:
-                U_NN_element = tf.reshape(
+                u_nn_element = tf.reshape(
                     tf.stack([
                         -jacobian *
-                        tf.reduce_sum(self.wquad * d2u_NN_quad_element *
+                        tf.reduce_sum(self.w_quadrature * d2u_nn_quad_element *
                                       test_quad_element[i])
-                        for i in range(Ntest_element)
+                        for i in range(n_test_functions)
                     ]), (-1, 1))
 
             if variational_form == 2:
-                U_NN_element = tf.reshape(
+                u_nn_element = tf.reshape(
                     tf.stack([
-                        tf.reduce_sum(self.wquad * d1u_NN_quad_element *
+                        tf.reduce_sum(self.w_quadrature * d1u_nn_quad_element *
                                       d1test_quad_element[i])
-                        for i in range(Ntest_element)
+                        for i in range(n_test_functions)
                     ]), (-1, 1))
 
-            Res_NN_element = U_NN_element - F_exact_element
-            loss_element = tf.reduce_mean(tf.square(Res_NN_element))
-            self.varloss_total = self.varloss_total + loss_element
+            residual_nn_element = u_nn_element - f_element
+            loss_element = tf.reduce_mean(tf.square(residual_nn_element))
+            self.varloss_total += loss_element
 
-        self.lossb = tf.reduce_mean(tf.square(self.u_tf - self.u_NN_boundary))
+        self.lossb = tf.reduce_mean(tf.square(self.u_tf - self.u_nn_boundary))
         self.lossv = self.varloss_total
         self.loss = boundary_loss_weight * self.lossb + self.lossv
 
     def optimizer(self, learning_rate):
-        self.learning_rate = learning_rate
-        self.optimizer_Adam = tf.train.AdamOptimizer(self.learning_rate)
+        self.optimizer_Adam = tf.train.AdamOptimizer(learning_rate)
         self.train_op_Adam = self.optimizer_Adam.minimize(self.loss)
-        self.sess = tf.Session(config=tf.ConfigProto(device_count={'GPU': 0}))
+        self.sess = tf.Session(config=tf.ConfigProto(device_count={'GPU': 1}))
         self.init = tf.global_variables_initializer()
         self.sess.run(self.init)
 
@@ -130,7 +130,7 @@ class VPINN(NN):
         return np.asarray(d1test_total), np.asarray(d2test_total)
 
     def predict(self, x):
-        u_pred = self.sess.run(self.u_NN_prediction, {self.x_prediction: x})
+        u_pred = self.sess.run(self.u_nn_prediction, {self.x_prediction: x})
         return u_pred
 
     def train(self, nIter, tresh, total_record):
@@ -138,7 +138,7 @@ class VPINN(NN):
         tf_dict = {
             self.x_tf: self.x,
             self.u_tf: self.u,
-            self.x_quad: self.xquad,
+            self.x_quad: self.x_quadrature,
         }
         start_time = time.time()
         for it in range(nIter):

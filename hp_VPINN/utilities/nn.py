@@ -1,5 +1,6 @@
 from hp_VPINN.utilities import np, tf
 
+
 class NN:
     def __init__(self, layers):
         self.weights, self.biases = self.initialize_NN(layers)
@@ -37,4 +38,3 @@ class NN:
     def net_u(self, x):
         u = self.neural_net(tf.concat([x], 1), self.weights, self.biases)
         return u
-
