@@ -25,18 +25,16 @@ class NN:
                                                dtype=tf.float64),
                            dtype=tf.float64)
 
-    def neural_net(self, X, weights, biases):
-        num_layers = len(weights) + 1
-        H = X
-        for l in range(0, num_layers - 2):
-            W = weights[l]
-            b = biases[l]
-            H = tf.sin(tf.add(tf.matmul(H, W), b))
-        W = weights[-1]
+    def neural_net(self, x, weights, biases):
+        out = x
+        for w, b in zip(weights[:-1], biases[:-1]):
+            out = tf.sin(tf.add(tf.matmul(out, w), b))
+        w = weights[-1]
         b = biases[-1]
-        Y = tf.add(tf.matmul(H, W), b)
+        Y = tf.add(tf.matmul(out, w), b)
         return Y
 
     def net_u(self, x):
         u = self.neural_net(tf.concat([x], 1), self.weights, self.biases)
         return u
+
