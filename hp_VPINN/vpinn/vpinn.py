@@ -2,7 +2,7 @@ import time
 
 from hp_VPINN.utilities import np, tf
 from hp_VPINN.utilities.nn import NN
-from hp_VPINN.utilities.gauss_jacobi_quadrature_rule import jacobi_polynomial
+from hp_VPINN.utilities.test_functions import jacobi_test_function, jacobi_test_function_derivative
 
 
 class VPINN(NN):
@@ -94,46 +94,16 @@ class VPINN(NN):
         return f
 
     def test_function(self, n_test_functions, x):
-        test_total = []
-        for n in range(1, n_test_functions + 1):
-            test = jacobi_polynomial(n + 1, 0, 0, x) - jacobi_polynomial(
-                n - 1, 0, 0, x)
-            test_total.append(test)
-        return np.asarray(test_total)
+        return jacobi_test_function(n_test_functions, x)
 
     def test_function_derivative(self, n_test_functions, x):
-        d1test_total = []
-        d2test_total = []
-        for n in range(1, n_test_functions + 1):
-            if n == 1:
-                d1test = ((n + 2) / 2) * jacobi_polynomial(n, 1, 1, x)
-                d2test = ((n + 2) * (n + 3) /
-                          (2 * 2)) * jacobi_polynomial(n - 1, 2, 2, x)
-                d1test_total.append(d1test)
-                d2test_total.append(d2test)
-            elif n == 2:
-                d1test = ((n + 2) / 2) * jacobi_polynomial(n, 1, 1, x) - (
-                    (n) / 2) * jacobi_polynomial(n - 2, 1, 1, x)
-                d2test = ((n + 2) * (n + 3) /
-                          (2 * 2)) * jacobi_polynomial(n - 1, 2, 2, x)
-                d1test_total.append(d1test)
-                d2test_total.append(d2test)
-            else:
-                d1test = ((n + 2) / 2) * jacobi_polynomial(n, 1, 1, x) - (
-                    (n) / 2) * jacobi_polynomial(n - 2, 1, 1, x)
-                d2test = ((n + 2) * (n + 3) /
-                          (2 * 2)) * jacobi_polynomial(n - 1, 2, 2, x) - (
-                              (n) * (n + 1) /
-                              (2 * 2)) * jacobi_polynomial(n - 3, 2, 2, x)
-                d1test_total.append(d1test)
-                d2test_total.append(d2test)
-        return np.asarray(d1test_total), np.asarray(d2test_total)
+        return jacobi_test_function_derivative(n_test_functions, x)
 
     def predict(self, x):
         u_pred = self.sess.run(self.u_nn_prediction, {self.x_prediction: x})
         return u_pred
 
-    def train(self, nIter, tresh, total_record):
+    def train(self, n_iterations, treshold, total_record):
 
         tf_dict = {
             self.x_tf: self.x,
@@ -141,7 +111,7 @@ class VPINN(NN):
             self.x_quad: self.x_quadrature,
         }
         start_time = time.time()
-        for it in range(nIter):
+        for it in range(n_iterations):
             self.sess.run(self.train_op_Adam, tf_dict)
 
             if it % 10 == 0:
@@ -150,7 +120,7 @@ class VPINN(NN):
                 loss_valuev = self.sess.run(self.lossv, tf_dict)
                 total_record.append(np.array([it, loss_value]))
 
-                if loss_value < tresh:
+                if loss_value < treshold:
                     print('It: %d, Loss: %.3e' % (it, loss_value))
                     return total_record
 

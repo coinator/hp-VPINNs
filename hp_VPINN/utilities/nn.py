@@ -1,4 +1,5 @@
 from hp_VPINN.utilities import np, tf
+from hp_VPINN.utilities.gauss_jacobi_quadrature_rule import jacobi_polynomial
 
 
 class NN:

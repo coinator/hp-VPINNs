@@ -4,6 +4,7 @@ import numpy as np
 from hp_VPINN.utilities import tf, np
 from hp_VPINN.utilities.gauss_jacobi_quadrature_rule import jacobi_polynomial, gauss_lobatto_jacobi_weights
 from hp_VPINN.utilities.plotting import plot
+from hp_VPINN.utilities.test_functions import jacobi_test_function
 from hp_VPINN.vpinn.vpinn import VPINN
 
 if __name__ == "__main__":
@@ -32,9 +33,7 @@ if __name__ == "__main__":
         return -amp * gtemp
 
     def test_function(n, x):
-        test = jacobi_polynomial(n + 1, 0, 0, x) - jacobi_polynomial(
-            n - 1, 0, 0, x)
-        return test
+        return jacobi_test_function(n, x)
 
     [x_quad, w_quad] = gauss_lobatto_jacobi_weights(n_quadrature_points, 0, 0)
 
@@ -46,10 +45,8 @@ if __name__ == "__main__":
     for e in range(n_elements):
         x_quad_element = grid[e] + (grid[e + 1] - grid[e]) / 2 * (x_quad + 1)
         jacobian = (grid[e + 1] - grid[e]) / 2
-        test_functions_element = np.asarray([
-            test_function(n, x_quad)
-            for n in range(1, test_functions_per_element + 1)
-        ])
+        test_functions_element = test_function(test_functions_per_element,
+                                               x_quad)
 
         f_quad_element = f(x_quad_element)
         f_element = jacobian * np.asarray([
