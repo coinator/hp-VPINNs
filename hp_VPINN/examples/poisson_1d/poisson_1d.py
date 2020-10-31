@@ -35,9 +35,9 @@ if __name__ == "__main__":
     def test_function(n, x):
         return jacobi_test_function(n, x)
 
-    [x_quad, w_quad] = gauss_lobatto_jacobi_weights(n_quadrature_points, 0, 0)
+    x_quad, w_quad = gauss_lobatto_jacobi_weights(n_quadrature_points, 0, 0)
 
-    [x_l, x_r] = [-1, 1]
+    x_l, x_r = [-1, 1]
     delta_x = (x_r - x_l) / n_elements
     grid = np.asarray([x_l + i * delta_x for i in range(n_elements + 1)])
 
@@ -61,19 +61,16 @@ if __name__ == "__main__":
     x_boundary = np.asarray([-1.0, 1.0])[:, None]
     u_boundary = u_exact(x_boundary)
 
-    [x_quad, w_quad] = gauss_lobatto_jacobi_weights(n_quadrature_points, 0, 0)
+    x_quad, w_quad = gauss_lobatto_jacobi_weights(n_quadrature_points, 0, 0)
 
     X_quad_train = x_quad[:, None]
     W_quad_train = w_quad[:, None]
 
     test_points = 2000
-    xtest = np.linspace(-1, 1, test_points)
-    data_temp = np.asarray([[xtest[i], u_exact(xtest[i])]
-                            for i in range(len(xtest))])
-    x_prediction = data_temp.flatten()[0::2]
-    u_correct = data_temp.flatten()[1::2]
-    x_prediction = x_prediction[:, None]
-    u_correct = u_correct[:, None]
+
+    x_test = np.linspace(-1, 1, test_points)
+    x_prediction = x_test[:, None]
+    u_correct = u_exact(x_test)[:, None]
 
     model = VPINN(net_layers)
     model.boundary(x_boundary, u_boundary)
