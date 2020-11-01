@@ -12,14 +12,14 @@ class VPINN(NN):
     def boundary(self, x_boundary, u_boundary):
         self.x = x_boundary
         self.u = u_boundary
-        self.x_tf = tf.placeholder(tf.float64, shape=[None, self.x.shape[1]])
-        self.u_tf = tf.placeholder(tf.float64, shape=[None, self.u.shape[1]])
+        self.x_tf = tf.constant(self.x[:, None])
+        self.u_tf = tf.constant(self.u[:, None])
 
     def element_losses(self, x_quadrature, w_quadrature, variational_form,
-                       boundary_loss_weight, f_elements, grid):
+                       boundary_loss_weight, elements):
         self.x_quadrature = x_quadrature
         self.w_quadrature = w_quadrature
-        self.f_elements = f_elements
+        self.elements = elements
 
         self.x_quad = tf.placeholder(tf.float64,
                                      shape=[None, self.x_quadrature.shape[1]])
@@ -31,14 +31,12 @@ class VPINN(NN):
         self.u_nn_prediction = self.net_u(self.x_prediction)
 
         self.varloss_total = 0
-        for e in range(np.shape(self.f_elements)[0]):
-            f_element = self.f_elements[e]
-            n_test_functions = np.shape(f_element)[0]
+        for e in elements:
+            f_element = e.f
+            n_test_functions = e.n_test_functions
 
-            x_quad_element = tf.constant(grid[e] +
-                                         (grid[e + 1] - grid[e]) / 2 *
-                                         (self.x_quadrature + 1))
-            jacobian = (grid[e + 1] - grid[e]) / 2
+            x_quad_element = tf.constant(e.x_quad_mapped[:, None])
+            jacobian = e.jacobian
 
             test_quad_element = self.test_function(n_test_functions,
                                                    self.x_quadrature)
@@ -53,7 +51,7 @@ class VPINN(NN):
                     tf.stack([
                         -jacobian *
                         tf.reduce_sum(self.w_quadrature * d2u_nn_quad_element *
-                                      test_quad_element[i])
+                                     test_quad_element[i])
                         for i in range(n_test_functions)
                     ]), (-1, 1))
 
@@ -106,9 +104,7 @@ class VPINN(NN):
     def train(self, n_iterations, treshold, total_record):
 
         tf_dict = {
-            self.x_tf: self.x,
-            self.u_tf: self.u,
-            self.x_quad: self.x_quadrature,
+            self.x_quad: self.x_quadrature
         }
         start_time = time.time()
         for it in range(n_iterations):
