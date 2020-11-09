@@ -1,21 +1,21 @@
 from hp_VPINN.utilities import tf, np
+from hp_VPINN.utilities.arg_parsing import results_dir
 from hp_VPINN.utilities.gauss_jacobi_quadrature_rule import jacobi_polynomial, gauss_lobatto_jacobi_weights
 from hp_VPINN.utilities.plotting import plot
 from hp_VPINN.utilities.test_functions import jacobi_test_function
 from hp_VPINN.vpinn.vpinn import VPINN
 from hp_VPINN.elements.element import Element
 
-
 if __name__ == "__main__":
 
     learning_rate = 0.001
-    optimization_iterations = 1000 + 1
+    optimization_iterations = 700 + 1
     optimization_threshold = 2e-32
     variational_form = 2
     n_elements = 3
-    net_layers = [1] + [20] * 6 + [1]
+    net_layers = [1] + [20] * 3 + [1]
     test_functions_per_element = 60
-    n_quadrature_points = 80
+    n_quadrature_points = 90
     boundary_loss_weight = 1
     test_points = 2000
 
@@ -73,7 +73,8 @@ if __name__ == "__main__":
          u_prediction=u_prediction,
          u_correct=u_correct,
          total_record=total_record,
-         grid=grid)
+         grid=grid,
+         results_dir=results_dir)
 
     u_prediction = model.predict(x_prediction)
 

@@ -5,7 +5,7 @@ import matplotlib.gridspec as gridspec
 
 
 def plot(x_quadrature, x_boundary, x_prediction, u_prediction, u_correct,
-         total_record, grid):
+         total_record, grid, results_dir):
     y_quad_plot = np.ones(len(x_quadrature))
     y_train_plot = np.ones(len(x_boundary))
 
@@ -36,7 +36,7 @@ def plot(x_quadrature, x_boundary, x_prediction, u_prediction, u_correct,
 
     fig.tight_layout()
     fig.set_size_inches(w=10, h=7)
-    plt.savefig('Results/Train-Quad-pnts.pdf')
+    plt.savefig(f'{results_dir}/Train-Quad-pnts.pdf')
 
     font = 24
 
@@ -51,7 +51,7 @@ def plot(x_quadrature, x_boundary, x_prediction, u_prediction, u_correct,
     plt.plot(iteration, loss_his, 'gray')
     plt.tick_params(labelsize=20)
     fig.set_size_inches(w=11, h=5.5)
-    plt.savefig('Results/loss.pdf')
+    plt.savefig(f'{results_dir}/loss.pdf')
 
     fig, ax = plt.subplots()
     plt.tick_params(axis='y', which='both', labelleft='on', labelright='off')
@@ -64,7 +64,7 @@ def plot(x_quadrature, x_boundary, x_prediction, u_prediction, u_correct,
     plt.plot(iteration, error_his, 'gray')
     plt.tick_params(labelsize=20)
     fig.set_size_inches(w=11, h=5.5)
-    plt.savefig('Results/error.pdf')
+    plt.savefig(f'{results_dir}/error.pdf')
 
     pnt_skip = 25
     fig, ax = plt.subplots()
@@ -87,7 +87,7 @@ def plot(x_quadrature, x_boundary, x_prediction, u_prediction, u_correct,
     plt.tick_params(labelsize=20)
     legend = plt.legend(shadow=True, loc='upper left', fontsize=18, ncol=1)
     fig.set_size_inches(w=11, h=5.5)
-    plt.savefig('Results/prediction.pdf')
+    plt.savefig(f'{results_dir}/prediction.pdf')
 
     fig, ax = plt.subplots()
     plt.locator_params(axis='x', nbins=6)
@@ -101,6 +101,6 @@ def plot(x_quadrature, x_boundary, x_prediction, u_prediction, u_correct,
     plt.plot(x_prediction, abs(u_correct - u_prediction), 'k')
     plt.tick_params(labelsize=20)
     fig.set_size_inches(w=11, h=5.5)
-    plt.savefig('Results/error.pdf')
+    plt.savefig(f'{results_dir}/error.pdf')
 
     plt.show()
