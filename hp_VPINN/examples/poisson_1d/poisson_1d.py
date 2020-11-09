@@ -1,6 +1,3 @@
-import tensorflow as tf
-import numpy as np
-
 from hp_VPINN.utilities import tf, np
 from hp_VPINN.utilities.gauss_jacobi_quadrature_rule import jacobi_polynomial, gauss_lobatto_jacobi_weights
 from hp_VPINN.utilities.plotting import plot
@@ -44,15 +41,21 @@ if __name__ == "__main__":
     delta_x = (x_r - x_l) / n_elements
     grid = np.asarray([x_l + i * delta_x for i in range(n_elements + 1)])
 
-    elements = [Element(x_quad, w_quad, test_functions_per_element, test_function, f, grid[i], grid[i+1]) for i in range(n_elements)]
-    f_elements = [e.f for e in elements]
-    f_elements = np.asarray(f_elements)
+    elements = [
+        Element(x_quad, w_quad, test_functions_per_element, test_function, f,
+                grid[i], grid[i + 1]) for i in range(len(grid) -1)
+    ]
 
     x_boundary = np.asarray([-1.0, 1.0])[:, None]
     u_boundary = u_exact(x_boundary)
 
     x_quad_train = x_quad[:, None]
     w_quad_train = w_quad[:, None]
+
+    x_test = np.linspace(-1, 1, test_points)
+    x_prediction = x_test[:, None]
+    u_correct = u_exact(x_test)[:, None]
+
 
     model = VPINN(net_layers)
     model.boundary(x_boundary, u_boundary)
