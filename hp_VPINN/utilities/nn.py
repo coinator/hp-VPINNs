@@ -3,8 +3,12 @@ from hp_VPINN.utilities.gauss_jacobi_quadrature_rule import jacobi_polynomial
 
 
 class NN:
-    def __init__(self, layers):
-        self.weights, self.biases = self.initialize_NN(layers)
+    def __init__(self, layers, weights=None, biases=None):
+        if not (weights and biases):
+            self.weights, self.biases = self.initialize_NN(layers)
+        else:
+            self.weights = weights
+            self.biases = biases
 
     def initialize_NN(self, layers):
         weights = []

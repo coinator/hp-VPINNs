@@ -6,8 +6,8 @@ from hp_VPINN.utilities.test_functions import jacobi_test_function, jacobi_test_
 
 
 class VPINN(NN):
-    def __init__(self, layers):
-        NN.__init__(self, layers)
+    def __init__(self, layers, weights=None, biases=None):
+        NN.__init__(self, layers, weights, biases)
 
     def boundary(self, x_boundary, u_boundary):
         self.x = x_boundary
