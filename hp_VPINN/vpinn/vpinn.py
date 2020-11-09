@@ -101,20 +101,22 @@ class VPINN(NN):
         u_pred = self.sess.run(self.u_nn_prediction, {self.x_prediction: x})
         return u_pred
 
-    def train(self, n_iterations, treshold, total_record):
+    def exact(self, x_test, u_exact):
+        self.u_exact = tf.constant(u_exact[:, None])
+        self.x_test = x_test[:, None]
+        self.l2_error = tf.reduce_mean(tf.square(self.u_nn_prediction - self.u_exact))
 
-        tf_dict = {
-            self.x_quad: self.x_quadrature
-        }
+    def train(self, n_iterations, treshold, total_record):
         start_time = time.time()
         for it in range(n_iterations):
-            self.sess.run(self.train_op_Adam, tf_dict)
+            self.sess.run(self.train_op_Adam)
 
             if it % 10 == 0:
-                loss_value = self.sess.run(self.loss, tf_dict)
-                loss_valueb = self.sess.run(self.lossb, tf_dict)
-                loss_valuev = self.sess.run(self.lossv, tf_dict)
-                total_record.append(np.array([it, loss_value]))
+                loss_value = self.sess.run(self.loss)
+                loss_valueb = self.sess.run(self.lossb)
+                loss_valuev = self.sess.run(self.lossv)
+                l2_errorv = self.sess.run(self.l2_error, {self.x_prediction: self.x_test})
+                total_record.append(np.array([it, loss_value, l2_errorv]))
 
                 if loss_value < treshold:
                     print('It: %d, Loss: %.3e' % (it, loss_value))
@@ -122,7 +124,7 @@ class VPINN(NN):
 
             if it % 100 == 0:
                 elapsed = time.time() - start_time
-                str_print = 'It: %d, Lossb: %.3e, Lossv: %.3e, Time: %.2f'
-                print(str_print % (it, loss_valueb, loss_valuev, elapsed))
+                str_print = 'It: %d, Lossb: %.3e, Lossv: %.3e, ErrL2: %.3e, Time: %.2f'
+                print(str_print % (it, loss_valueb, loss_valuev, l2_errorv, elapsed))
                 start_time = time.time()
         return total_record

@@ -62,12 +62,18 @@ if __name__ == "__main__":
     model.element_losses(x_quad_train, w_quad_train, variational_form,
                          boundary_loss_weight, elements)
     model.optimizer(learning_rate)
+    model.exact(x_test, u_exact(x_test))
     total_record = model.train(optimization_iterations, optimization_threshold,
                                [])
+    u_prediction = model.predict(x_prediction)
 
-    x_test = np.linspace(-1, 1, test_points)
-    x_prediction = x_test[:, None]
-    u_correct = u_exact(x_test)[:, None]
+    plot(x_quadrature=x_quad_train,
+         x_boundary=x_boundary,
+         x_prediction=x_prediction,
+         u_prediction=u_prediction,
+         u_correct=u_correct,
+         total_record=total_record,
+         grid=grid)
 
     u_prediction = model.predict(x_prediction)
 

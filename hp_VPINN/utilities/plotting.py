@@ -53,6 +53,19 @@ def plot(x_quadrature, x_boundary, x_prediction, u_prediction, u_correct,
     fig.set_size_inches(w=11, h=5.5)
     plt.savefig('Results/loss.pdf')
 
+    fig, ax = plt.subplots()
+    plt.tick_params(axis='y', which='both', labelleft='on', labelright='off')
+    plt.xlabel('$iteration$', fontsize=font)
+    plt.ylabel('$error \,\, values$', fontsize=font)
+    plt.yscale('log')
+    plt.grid(True)
+    iteration = [total_record[i][0] for i in range(len(total_record))]
+    error_his = [total_record[i][2] for i in range(len(total_record))]
+    plt.plot(iteration, error_his, 'gray')
+    plt.tick_params(labelsize=20)
+    fig.set_size_inches(w=11, h=5.5)
+    plt.savefig('Results/error.pdf')
+
     pnt_skip = 25
     fig, ax = plt.subplots()
     plt.locator_params(axis='x', nbins=6)
