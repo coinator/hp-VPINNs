@@ -101,6 +101,6 @@ def plot(x_quadrature, x_boundary, x_prediction, u_prediction, u_correct,
     plt.plot(x_prediction, abs(u_correct - u_prediction), 'k')
     plt.tick_params(labelsize=20)
     fig.set_size_inches(w=11, h=5.5)
-    plt.savefig(f'{results_dir}/error.pdf')
+    plt.savefig(f'{results_dir}/point_wiseerror.pdf')
 
     plt.show()
