@@ -1,10 +1,11 @@
-from hp_VPINN.utilities import tf, np
+from hp_VPINN.elements.element import Element
+from hp_VPINN.utilities import np, tf
 from hp_VPINN.utilities.arg_parsing import results_dir
-from hp_VPINN.utilities.gauss_jacobi_quadrature_rule import jacobi_polynomial, gauss_lobatto_jacobi_weights
+from hp_VPINN.utilities.gauss_jacobi_quadrature_rule import (
+    gauss_lobatto_jacobi_weights, jacobi_polynomial)
 from hp_VPINN.utilities.plotting import plot
 from hp_VPINN.utilities.test_functions import jacobi_test_function
 from hp_VPINN.vpinn.vpinn import VPINN
-from hp_VPINN.elements.element import Element
 
 if __name__ == "__main__":
 
@@ -43,7 +44,7 @@ if __name__ == "__main__":
 
     elements = [
         Element(x_quad, w_quad, test_functions_per_element, test_function, f,
-                grid[i], grid[i + 1]) for i in range(len(grid) -1)
+                grid[i], grid[i + 1]) for i in range(n_elements)
     ]
 
     x_boundary = np.asarray([-1.0, 1.0])[:, None]
@@ -75,13 +76,3 @@ if __name__ == "__main__":
          total_record=total_record,
          grid=grid,
          results_dir=results_dir)
-
-    u_prediction = model.predict(x_prediction)
-
-    plot(x_quadrature=x_quad_train,
-         x_boundary=x_boundary,
-         x_prediction=x_prediction,
-         u_prediction=u_prediction,
-         u_correct=u_correct,
-         total_record=total_record,
-         grid=grid)
