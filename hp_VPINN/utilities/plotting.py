@@ -5,7 +5,7 @@ import matplotlib.gridspec as gridspec
 
 
 def plot(x_quadrature, x_boundary, x_prediction, u_prediction, u_correct,
-         total_record, grid, results_dir):
+         total_record, grid, results_dir=None):
     y_quad_plot = np.ones(len(x_quadrature))
     y_train_plot = np.ones(len(x_boundary))
 
@@ -36,7 +36,8 @@ def plot(x_quadrature, x_boundary, x_prediction, u_prediction, u_correct,
 
     fig.tight_layout()
     fig.set_size_inches(w=10, h=7)
-    plt.savefig(f'{results_dir}/Train-Quad-pnts.pdf')
+    if results_dir:
+        plt.savefig(f'{results_dir}/Train-Quad-pnts.pdf')
 
     font = 24
 
@@ -51,7 +52,8 @@ def plot(x_quadrature, x_boundary, x_prediction, u_prediction, u_correct,
     plt.plot(iteration, loss_his, 'gray')
     plt.tick_params(labelsize=20)
     fig.set_size_inches(w=11, h=5.5)
-    plt.savefig(f'{results_dir}/loss.pdf')
+    if results_dir:
+        plt.savefig(f'{results_dir}/loss.pdf')
 
     fig, ax = plt.subplots()
     plt.tick_params(axis='y', which='both', labelleft='on', labelright='off')
@@ -64,7 +66,8 @@ def plot(x_quadrature, x_boundary, x_prediction, u_prediction, u_correct,
     plt.plot(iteration, error_his, 'gray')
     plt.tick_params(labelsize=20)
     fig.set_size_inches(w=11, h=5.5)
-    plt.savefig(f'{results_dir}/error.pdf')
+    if results_dir:
+        plt.savefig(f'{results_dir}/error.pdf')
 
     pnt_skip = 25
     fig, ax = plt.subplots()
@@ -75,19 +78,26 @@ def plot(x_quadrature, x_boundary, x_prediction, u_prediction, u_correct,
     plt.axhline(0, linewidth=0.8, linestyle='-', color='gray')
     for xc in grid:
         plt.axvline(x=xc, linewidth=2, ls='--')
-    plt.plot(x_prediction,
-             u_correct,
+
+    indexes_1 = np.where(x_prediction < -0.02)[0][::pnt_skip]
+    indexes_2 = np.where(abs(x_prediction) <= 0.02)[0][::2]
+    indexes_3 = np.where(x_prediction > 0.02)[0][::pnt_skip]
+    indexes = np.concatenate((indexes_1, indexes_2, indexes_3), axis=0)
+
+    plt.plot(x_prediction[indexes],
+             u_correct[indexes],
              linewidth=1,
              color='r',
              label=''.join(['$exact$']))
-    plt.plot(x_prediction[0::pnt_skip],
-             u_prediction[0::pnt_skip],
+    plt.plot(x_prediction[indexes],
+             u_prediction[indexes],
              'k*',
              label='$VPINN$')
     plt.tick_params(labelsize=20)
     legend = plt.legend(shadow=True, loc='upper left', fontsize=18, ncol=1)
     fig.set_size_inches(w=11, h=5.5)
-    plt.savefig(f'{results_dir}/prediction.pdf')
+    if results_dir:
+        plt.savefig(f'{results_dir}/prediction.pdf')
 
     fig, ax = plt.subplots()
     plt.locator_params(axis='x', nbins=6)
@@ -101,6 +111,7 @@ def plot(x_quadrature, x_boundary, x_prediction, u_prediction, u_correct,
     plt.plot(x_prediction, abs(u_correct - u_prediction), 'k')
     plt.tick_params(labelsize=20)
     fig.set_size_inches(w=11, h=5.5)
-    plt.savefig(f'{results_dir}/point_wiseerror.pdf')
+    if results_dir:
+        plt.savefig(f'{results_dir}/point_wiseerror.pdf')
 
     plt.show()
