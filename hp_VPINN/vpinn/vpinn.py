@@ -40,7 +40,7 @@ class VPINN(NN):
 
             test_quad_element = self.test_function(n_test_functions,
                                                    self.x_quadrature)
-            d1test_quad_element, d2test_quad_element = self.test_function_derivative(
+            d1test_quad_element, d2test_quad_element = self.test_function_derivatives(
                 n_test_functions, self.x_quadrature)
             u_nn_quad_element = self.net_u(x_quad_element)
             d1u_nn_quad_element, d2u_nn_quad_element = self.net_du(
@@ -51,7 +51,7 @@ class VPINN(NN):
                     tf.stack([
                         -jacobian *
                         tf.reduce_sum(self.w_quadrature * d2u_nn_quad_element *
-                                     test_quad_element[i])
+                                      test_quad_element[i])
                         for i in range(n_test_functions)
                     ]), (-1, 1))
 
@@ -94,7 +94,7 @@ class VPINN(NN):
     def test_function(self, n_test_functions, x):
         return jacobi_test_function(n_test_functions, x)
 
-    def test_function_derivative(self, n_test_functions, x):
+    def test_function_derivatives(self, n_test_functions, x):
         return jacobi_test_function_derivatives(n_test_functions, x)
 
     def predict(self, x):
@@ -104,7 +104,8 @@ class VPINN(NN):
     def exact(self, x_test, u_exact):
         self.u_exact = tf.constant(u_exact[:, None])
         self.x_test = x_test[:, None]
-        self.l2_error = tf.reduce_mean(tf.square(self.u_nn_prediction - self.u_exact))
+        self.l2_error = tf.reduce_mean(
+            tf.square(self.u_nn_prediction - self.u_exact))
 
     def train(self, n_iterations, treshold, total_record):
         start_time = time.time()
@@ -115,7 +116,8 @@ class VPINN(NN):
                 loss_value = self.sess.run(self.loss)
                 loss_valueb = self.sess.run(self.lossb)
                 loss_valuev = self.sess.run(self.lossv)
-                l2_errorv = self.sess.run(self.l2_error, {self.x_prediction: self.x_test})
+                l2_errorv = self.sess.run(self.l2_error,
+                                          {self.x_prediction: self.x_test})
                 total_record.append(np.array([it, loss_value, l2_errorv]))
 
                 if loss_value < treshold:
@@ -125,6 +127,7 @@ class VPINN(NN):
             if it % 100 == 0:
                 elapsed = time.time() - start_time
                 str_print = 'It: %d, Lossb: %.3e, Lossv: %.3e, ErrL2: %.3e, Time: %.2f'
-                print(str_print % (it, loss_valueb, loss_valuev, l2_errorv, elapsed))
+                print(str_print %
+                      (it, loss_valueb, loss_valuev, l2_errorv, elapsed))
                 start_time = time.time()
         return total_record
