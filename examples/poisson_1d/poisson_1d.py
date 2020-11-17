@@ -40,14 +40,14 @@ if __name__ == "__main__":
 
     x_l, x_r = [-1, 1]
     delta_x = (x_r - x_l) / n_elements
-    grid = np.asarray([x_l + i * delta_x for i in range(n_elements + 1)])
+    grid = np.array([x_l + i * delta_x for i in range(n_elements + 1)])
 
     elements = [
         Element(x_quad, w_quad, test_functions_per_element, test_function, f,
                 grid[i], grid[i + 1]) for i in range(n_elements)
     ]
 
-    x_boundary = np.asarray([-1.0, 1.0])[:, None]
+    x_boundary = np.array([-1.0, 1.0])[:, None]
     u_boundary = u_exact(x_boundary)
 
     x_quad_train = x_quad[:, None]
@@ -56,7 +56,6 @@ if __name__ == "__main__":
     x_test = np.linspace(-1, 1, test_points)
     x_prediction = x_test[:, None]
     u_correct = u_exact(x_test)[:, None]
-
 
     model = VPINN(net_layers)
     model.boundary(x_boundary, u_boundary)

@@ -7,7 +7,7 @@ def jacobi_test_function(n_test_functions, x):
         jacobi_polynomial(n + 1, 0, 0, x) - jacobi_polynomial(n - 1, 0, 0, x)
         for n in range(1, n_test_functions + 1)
     ]
-    return np.asarray(test_total)
+    return np.array(test_total)
 
 
 def jacobi_test_function_derivative(n_test_functions, x):
@@ -27,4 +27,4 @@ def jacobi_test_function_derivative(n_test_functions, x):
                       (2 * 2)) * jacobi_polynomial(n - 3, 2, 2, x)
         d1test_total.append(d1test)
         d2test_total.append(d2test)
-    return np.asarray(d1test_total), np.asarray(d2test_total)
+    return np.array(d1test_total), np.array(d2test_total)
