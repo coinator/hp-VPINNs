@@ -2,7 +2,7 @@ import time
 
 from hp_VPINN.utilities import np, tf
 from hp_VPINN.utilities.nn import NN
-from hp_VPINN.utilities.test_functions import jacobi_test_function, jacobi_test_function_derivative
+from hp_VPINN.utilities.test_functions import jacobi_test_function, jacobi_test_function_derivatives
 
 
 class VPINN(NN):
@@ -95,7 +95,7 @@ class VPINN(NN):
         return jacobi_test_function(n_test_functions, x)
 
     def test_function_derivative(self, n_test_functions, x):
-        return jacobi_test_function_derivative(n_test_functions, x)
+        return jacobi_test_function_derivatives(n_test_functions, x)
 
     def predict(self, x):
         u_pred = self.sess.run(self.u_nn_prediction, {self.x_prediction: x})

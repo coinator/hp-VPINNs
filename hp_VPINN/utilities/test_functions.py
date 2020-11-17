@@ -10,7 +10,7 @@ def jacobi_test_function(n_test_functions, x):
     return np.array(test_total)
 
 
-def jacobi_test_function_derivative(n_test_functions, x):
+def jacobi_test_function_derivatives(n_test_functions, x):
     d1test_total = [((1 + 2) / 2) * jacobi_polynomial(1, 1, 1, x),
                     ((2 + 2) / 2) * jacobi_polynomial(2, 1, 1, x) -
                     ((2) / 2) * jacobi_polynomial(2 - 2, 1, 1, x)]
