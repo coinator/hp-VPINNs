@@ -1,6 +1,7 @@
 from hp_VPINN.elements.element import Element
 from hp_VPINN.utilities import np, tf
 from hp_VPINN.utilities.arg_parsing import results_dir
+from hp_VPINN.utilities.grid import create_grid
 from hp_VPINN.utilities.gauss_jacobi_quadrature_rule import (
     gauss_lobatto_jacobi_weights, jacobi_polynomial)
 from hp_VPINN.utilities.plotting import plot
@@ -38,9 +39,7 @@ if __name__ == "__main__":
 
     x_quad, w_quad = gauss_lobatto_jacobi_weights(n_quadrature_points, 0, 0)
 
-    x_l, x_r = [-1, 1]
-    delta_x = (x_r - x_l) / n_elements
-    grid = np.array([x_l + i * delta_x for i in range(n_elements + 1)])
+    grid = create_grid(n_elements)
 
     elements = [
         Element(x_quad, w_quad, test_functions_per_element, test_function, f,
