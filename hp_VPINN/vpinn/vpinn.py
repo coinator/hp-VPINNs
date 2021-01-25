@@ -10,10 +10,8 @@ class VPINN(NN):
         NN.__init__(self, layers, weights, biases)
 
     def boundary(self, x_boundary, u_boundary):
-        self.x = x_boundary
-        self.u = u_boundary
-        self.x_tf = tf.constant(self.x[:, None])
-        self.u_tf = tf.constant(self.u[:, None])
+        self.x_boundary = tf.constant(x_boundary[:, None])
+        self.u_boundary = tf.constant(u_boundary[:, None])
 
     def element_losses(self, x_quadrature, w_quadrature, variational_form,
                        boundary_loss_weight, elements):
@@ -24,10 +22,10 @@ class VPINN(NN):
         self.x_quad = tf.placeholder(tf.float64,
                                      shape=[None, self.x_quadrature.shape[1]])
 
-        self.u_nn_boundary = self.net_u(self.x_tf)
+        self.u_nn_boundary = self.net_u(self.x_boundary)
 
-        self.x_prediction = tf.placeholder(tf.float64,
-                                           shape=[None, self.x.shape[1]])
+        self.x_prediction = tf.placeholder(
+            tf.float64, shape=[None, self.x_boundary.shape[1]])
         self.u_nn_prediction = self.net_u(self.x_prediction)
 
         self.varloss_total = 0
@@ -67,13 +65,13 @@ class VPINN(NN):
             loss_element = tf.reduce_mean(tf.square(residual_nn_element))
             self.varloss_total += loss_element
 
-        self.lossb = tf.reduce_mean(tf.square(self.u_tf - self.u_nn_boundary))
-        self.lossv = self.varloss_total
-        self.loss = boundary_loss_weight * self.lossb + self.lossv
+        self.loss_boundary = tf.reduce_mean(
+            tf.square(self.u_boundary - self.u_nn_boundary))
+        self.loss = boundary_loss_weight * self.loss_boundary + self.varloss_total
 
     def optimizer(self, learning_rate):
-        self.optimizer_Adam = tf.train.AdamOptimizer(learning_rate)
-        self.train_op_Adam = self.optimizer_Adam.minimize(self.loss)
+        self.optimizer_adam = tf.train.AdamOptimizer(learning_rate)
+        self.train_op_adam = self.optimizer_adam.minimize(self.loss)
         self.sess = tf.Session(config=tf.ConfigProto(device_count={'GPU': 1}))
         self.init = tf.global_variables_initializer()
         self.sess.run(self.init)
@@ -84,13 +82,6 @@ class VPINN(NN):
         d2u = tf.gradients(d1u, x)[0]
         return d1u, d2u
 
-    def net_f(self, x):
-        u = self.net_u(x)
-        u_x = tf.gradients(u, x)[0]
-        u_xx = tf.gradients(u_x, x)[0]
-        f = -u_xx
-        return f
-
     def test_function(self, n_test_functions, x):
         return jacobi_test_function(n_test_functions, x)
 
@@ -98,8 +89,7 @@ class VPINN(NN):
         return jacobi_test_function_derivatives(n_test_functions, x)
 
     def predict(self, x):
-        u_pred = self.sess.run(self.u_nn_prediction, {self.x_prediction: x})
-        return u_pred
+        return self.sess.run(self.u_nn_prediction, {self.x_prediction: x})
 
     def exact(self, x_test, u_exact):
         self.u_exact = tf.constant(u_exact[:, None])
@@ -110,12 +100,12 @@ class VPINN(NN):
     def train(self, n_iterations, treshold, total_record):
         start_time = time.time()
         for it in range(n_iterations):
-            self.sess.run(self.train_op_Adam)
+            self.sess.run(self.train_op_adam)
 
             if it % 10 == 0:
                 loss_value = self.sess.run(self.loss)
-                loss_valueb = self.sess.run(self.lossb)
-                loss_valuev = self.sess.run(self.lossv)
+                loss_valueb = self.sess.run(self.loss_boundary)
+                loss_valuev = self.sess.run(self.varloss_total)
                 l2_errorv = self.sess.run(self.l2_error,
                                           {self.x_prediction: self.x_test})
                 total_record.append(np.array([it, loss_value, l2_errorv]))
